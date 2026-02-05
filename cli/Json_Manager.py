@@ -5,3 +5,10 @@ def load_Json_to_dict(file_path: str) -> dict:
     with open(file_path, 'r') as file:
         data = json.load(file)
     return data
+ 
+"""
+for every dictionary in the list:
+    
+
+
+"""
