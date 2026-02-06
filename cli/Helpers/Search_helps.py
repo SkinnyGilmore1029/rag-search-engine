@@ -2,10 +2,16 @@ import json
 from pathlib import Path
 import string
 
+# Project root
 PROJECT_ROOT = Path(__file__).parent.parent
+
+# Paths relative to project root
+Movie_path = PROJECT_ROOT / "data" / "movies.json"
+STOP_WORD_PATH = PROJECT_ROOT / "data" / "stopwords.txt"
+
+# Optional cache for movies
 _MOVIES_CACHE = None
-Movie_path = Path("data/movies.json")
-STOP_WORD_PATH = Path("data/stopwords.txt")
+
 stop_words = {
     word
     for line in STOP_WORD_PATH.read_text(encoding="utf-8").splitlines()
