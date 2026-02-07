@@ -5,7 +5,7 @@ from nltk.stem import PorterStemmer
 
 
 # Project root
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 # Paths relative to project root
 Movie_path = PROJECT_ROOT / "data" / "movies.json"
@@ -20,6 +20,8 @@ stop_words = {
     if (word := line.strip())
 }
 
+
+stemmer = PorterStemmer()
 
 def load_movies_json() -> list[dict]:
     global _MOVIES_CACHE
@@ -37,7 +39,7 @@ def clean_words(word: str) -> str:
 def make_tokens(text: str) -> list[str]:
     cleaned = clean_words(text)
     return [
-        token
+        stemmer.stem(token)
         for token in cleaned.split()
         if token and token not in stop_words
     ]
