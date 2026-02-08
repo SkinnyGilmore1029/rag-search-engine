@@ -11,3 +11,4 @@ wheels/
 
 # Keep large data files out of version control
 /data/
+cache/

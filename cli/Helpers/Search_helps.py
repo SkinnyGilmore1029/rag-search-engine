@@ -1,5 +1,6 @@
 import json
 import string
+from pickle import dump
 from pathlib import Path
 from nltk.stem import PorterStemmer
 
@@ -13,6 +14,10 @@ STOP_WORD_PATH = PROJECT_ROOT / "data" / "stopwords.txt"
 
 # Optional cache for movies
 _MOVIES_CACHE = None
+
+# Save Path for the inverted index
+PATH_FOR_INDEX = Path("cache/index.pkl")
+PATH_FOR_DOCMAP = Path("cache/docmap.pkl")
 
 stop_words = {
     word
@@ -47,3 +52,40 @@ def make_tokens(text: str) -> list[str]:
 def has_matching_token(query_tokens: list[str], title_tokens: list[str]) -> bool:
     return bool(set(query_tokens) & set(title_tokens))
 
+
+
+class InvertedIndex:
+    def __init__(self, index:dict[str, set[int]], docmap:dict[int, object]):
+        self.index = index
+        self.docmap = docmap
+        
+    def __add_document(self, doc_id:int, text:str) -> None:
+        text_tokens = make_tokens(text)
+        for token in text_tokens:
+            if token not in self.index:
+                self.index[token] = set()
+            self.index[token].add(doc_id)
+    
+    def get_documents(self, term:str) -> list[int]:
+        key = term.lower()
+        if key not in self.index: # <- index is a dict[str, set[int]]
+            print(f"Term '{term}' not found in index.")
+            return []
+        return sorted(self.index[key])  # Return sorted list of document IDs for consistency
+    
+    def build(self) -> None:
+        all_movies = load_movies_json()
+        for movie in all_movies:
+            movie_info = f"{movie['title']} {movie['description']}"
+            self.__add_document(movie['id'], movie_info)
+            self.docmap[movie['id']] = movie
+    
+    def save(self) -> None:
+        # Create parent directory (cache/)
+        PATH_FOR_INDEX.parent.mkdir(parents=True, exist_ok=True)
+
+        with PATH_FOR_INDEX.open("wb") as f:
+            dump(self.index, f)
+
+        with PATH_FOR_DOCMAP.open("wb") as f:
+            dump(self.docmap, f)
