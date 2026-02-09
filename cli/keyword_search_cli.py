@@ -32,13 +32,6 @@ def main() -> None:
             invertedindex.build()
             invertedindex.save()
 
-            # 👇 THIS IS THE ASSIGNMENT REQUIREMENT
-            merida_docs = invertedindex.get_documents("merida")
-            if merida_docs:
-                print(f"First document ID for token 'merida': {merida_docs[0]}")
-            else:
-                print("Token 'merida' not found in index.")
-
             print("Index built and saved successfully.")
                 
         case _:

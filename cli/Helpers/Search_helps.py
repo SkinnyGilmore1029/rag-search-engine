@@ -1,6 +1,6 @@
 import json
 import string
-from pickle import dump
+from pickle import dump, load
 from pathlib import Path
 from nltk.stem import PorterStemmer
 
@@ -89,3 +89,12 @@ class InvertedIndex:
 
         with PATH_FOR_DOCMAP.open("wb") as f:
             dump(self.docmap, f)
+            
+    def load(self) -> None:
+        if PATH_FOR_INDEX.exists() and PATH_FOR_DOCMAP.exists():
+            with PATH_FOR_INDEX.open("rb") as f:
+                self.index = load(f)
+            with PATH_FOR_DOCMAP.open("rb") as f:
+                self.docmap = load(f)
+        else:
+            raise FileNotFoundError("Index files and docmap files not found. Please build the index and the docmap first.")
