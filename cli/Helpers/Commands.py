@@ -1,4 +1,4 @@
-from .Search_helps import load_movies_json, make_tokens, has_matching_token, InvertedIndex
+from .Search_helps import make_tokens, InvertedIndex
 import math
 
 inverted_index = InvertedIndex({}, {}, {}) # Create an instance of the InvertedIndex class 
