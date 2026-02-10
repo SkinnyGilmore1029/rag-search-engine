@@ -1,19 +1,16 @@
 from .Search_helps import load_movies_json, make_tokens, has_matching_token, InvertedIndex
 import math
 
+inverted_index = InvertedIndex({}, {}, {}) # Create an instance of the InvertedIndex class 
+
 def Search_Command(query: str) -> list[dict]:
     """Handles the 'search' command for the CLI using cached title tokens."""
-    
-    # Load movies from json
-    # Movie_data = load_movies_json()  # dictionary of movies
-    
-    #
-    inverted_index = InvertedIndex({}, {},{})  # Create an instance of the InvertedIndex class
     try:
         inverted_index.load()  # Load the index and docmap from disk
     except FileNotFoundError:
         print("Index files not found. Please build the index first using the 'build' command.")
         return []
+    
     Movie_data = inverted_index.docmap.values()  # Get the list of movies from the docmap
     
     # Precompute tokens for each movie title (cache)
@@ -35,23 +32,12 @@ def Search_Command(query: str) -> list[dict]:
                 results.append(movie)
                 if len(results) >= 5:  # stop after first 5 matches
                     break
-    
-    """
-    # Search through cached tokens
-    for movie in Movie_data:
-        title_tokens = movie["tokens"]
-        if has_matching_token(query_tokens, title_tokens):
-            results.append(movie)
-            if len(results) >= 5:  # stop after first 5 matches
-                break
-    """
- 
+  
     return results
 
 def Term_Frequency_Command(doc_id: int, term: str) -> int:
     """Handles the 'tf' command for the CLI to get term frequency."""
-    
-    inverted_index = InvertedIndex({}, {}, {})  # Create an instance of the InvertedIndex class
+  
     try:
         inverted_index.load()  # Load the index and docmap from disk
     except FileNotFoundError:
@@ -63,8 +49,6 @@ def Term_Frequency_Command(doc_id: int, term: str) -> int:
 
 def Inverse_Document_Frequency_Command(term: str) -> float:
     """Handles the 'idf' command for the CLI to get inverse document frequency."""
-    # This function can be implemented similarly to Term_Frequency_Command
-    inverted_index = InvertedIndex({}, {}, {})  # Create an instance of the InvertedIndex class
     try:
         inverted_index.load()  # Load the index and docmap from disk
     except FileNotFoundError:
