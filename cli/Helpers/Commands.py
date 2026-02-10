@@ -74,3 +74,17 @@ def TF_IDF_Command(doc_id: int, term: str) -> float:
     tf = Term_Frequency_Command(doc_id, term)
     idf = Inverse_Document_Frequency_Command(term)
     return tf * idf
+
+def bm25_idf_command(term: str) -> float:
+    """Handles the 'bm25-idf' command for the CLI to get BM25 IDF score."""
+    inverted_index = get_loaded_index()
+    if inverted_index is None:
+        return 0.0
+    
+    text_tokens = make_tokens(term)
+    
+    if text_tokens is None or len(text_tokens) == 0:
+        print("No valid tokens found in the term.")
+        return 0.0
+    
+    return inverted_index.get_bm25_idf(text_tokens[0])

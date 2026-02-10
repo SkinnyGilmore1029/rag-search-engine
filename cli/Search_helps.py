@@ -1,30 +1,20 @@
 import json
 import string
+import math
 from collections import Counter
 from pickle import dump, load
 from pathlib import Path
 from nltk.stem import PorterStemmer
+from .config import (Movie_path, 
+                     PATH_FOR_INDEX, 
+                     PATH_FOR_DOCMAP, 
+                     PATH_FOR_FREQUENCIES, 
+                     stop_words)
 
-
-# Project root
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-
-# Paths relative to project root
-Movie_path = PROJECT_ROOT / "data" / "movies.json"
-STOP_WORD_PATH = PROJECT_ROOT / "data" / "stopwords.txt"
 
 # Optional cache for movies
 _MOVIES_CACHE = None
 
-# Save Path for the inverted index
-PATH_FOR_INDEX = Path("cache/index.pkl")
-PATH_FOR_DOCMAP = Path("cache/docmap.pkl")
-PATH_FOR_FREQUENCIES = Path("cache/term_frequencies.pkl")
-stop_words = {
-    word
-    for line in STOP_WORD_PATH.read_text(encoding="utf-8").splitlines()
-    if (word := line.strip())
-}
 
 
 stemmer = PorterStemmer()
@@ -99,6 +89,26 @@ class InvertedIndex:
             return 0
 
         return self.term_frequencies[doc_id][text_tokens[0]]
+    
+    def get_bm25_idf(self, term: str) -> float:
+        # IDF calculation for BM25
+        #log((N - df + 0.5) / (df + 0.5) + 1)
+         
+        #total number of documents
+        N = len(self.docmap)
+        
+        #document frequency for the term
+        df = len(self.get_documents(term))
+        
+        #Tokenize the term
+        text_tokens = make_tokens(term)
+        if len(text_tokens) > 1:
+            raise Exception("There are to many tokens in the term. Please only input one term.")
+        
+        if df == 0:
+            return 0.0
+        
+        return math.log((N - df + 0.5) / (df + 0.5) + 1)
     
     def save(self) -> None:
         # Create parent directory (cache/)
