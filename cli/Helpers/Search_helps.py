@@ -1,5 +1,6 @@
 import json
 import string
+from collections import Counter
 from pickle import dump, load
 from pathlib import Path
 from nltk.stem import PorterStemmer
@@ -18,7 +19,7 @@ _MOVIES_CACHE = None
 # Save Path for the inverted index
 PATH_FOR_INDEX = Path("cache/index.pkl")
 PATH_FOR_DOCMAP = Path("cache/docmap.pkl")
-
+PATH_FOR_FREQUENCIES = Path("cache/term_frequencies.pkl")
 stop_words = {
     word
     for line in STOP_WORD_PATH.read_text(encoding="utf-8").splitlines()
@@ -55,16 +56,20 @@ def has_matching_token(query_tokens: list[str], title_tokens: list[str]) -> bool
 
 
 class InvertedIndex:
-    def __init__(self, index:dict[str, set[int]], docmap:dict[int, object]):
+    def __init__(self, index:dict[str, set[int]], docmap:dict[int, object], term_frequencies:dict[int, Counter]):
         self.index = index
         self.docmap = docmap
+        self.term_frequencies = term_frequencies
         
     def __add_document(self, doc_id:int, text:str) -> None:
         text_tokens = make_tokens(text)
+        self.term_frequencies[doc_id] = Counter()
         for token in text_tokens:
             if token not in self.index:
                 self.index[token] = set()
+            self.term_frequencies[doc_id][token] += 1
             self.index[token].add(doc_id)
+            
     
     def get_documents(self, term:str) -> list[int]:
         key = term.lower()
@@ -80,20 +85,47 @@ class InvertedIndex:
             self.__add_document(movie['id'], movie_info)
             self.docmap[movie['id']] = movie
     
+    def get_tf(self, doc_id:int, term:str) -> int:
+        text_tokens = make_tokens(term)
+        #Term does not exist in the document
+        if self.term_frequencies.get(doc_id) is None:
+            return 0
+        #To many tokens in the term
+        if len(text_tokens) > 1:
+            raise Exception("There are to many tokens in the term. Please only input one term.")
+        
+        #Term does not exist in the document
+        if len(text_tokens) == 0:
+            return 0
+
+        return self.term_frequencies[doc_id][text_tokens[0]]
+    
     def save(self) -> None:
         # Create parent directory (cache/)
         PATH_FOR_INDEX.parent.mkdir(parents=True, exist_ok=True)
+        PATH_FOR_DOCMAP.parent.mkdir(parents=True, exist_ok=True)
+        PATH_FOR_FREQUENCIES.parent.mkdir(parents=True, exist_ok=True)
 
         with PATH_FOR_INDEX.open("wb") as f:
             dump(self.index, f)
+
+        with PATH_FOR_FREQUENCIES.open("wb") as f:
+            dump(self.term_frequencies, f)
 
         with PATH_FOR_DOCMAP.open("wb") as f:
             dump(self.docmap, f)
             
     def load(self) -> None:
-        if PATH_FOR_INDEX.exists() and PATH_FOR_DOCMAP.exists():
+        if (
+            PATH_FOR_INDEX.exists() and 
+            PATH_FOR_DOCMAP.exists() and 
+            PATH_FOR_FREQUENCIES.exists()
+            ):
+            
             with PATH_FOR_INDEX.open("rb") as f:
                 self.index = load(f)
+            with PATH_FOR_FREQUENCIES.open("rb") as f:
+                self.term_frequencies = load(f)
             with PATH_FOR_DOCMAP.open("rb") as f:
                 self.docmap = load(f)
         else:
