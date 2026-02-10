@@ -3,7 +3,6 @@ import string
 import math
 from collections import Counter
 from pickle import dump, load
-from pathlib import Path
 from nltk.stem import PorterStemmer
 from .config import (Movie_path, 
                      PATH_FOR_INDEX, 

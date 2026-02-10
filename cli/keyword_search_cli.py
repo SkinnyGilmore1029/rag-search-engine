@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
 import argparse
+
+from Helpers.Search_helps import InvertedIndex
 from Helpers.Commands import (Search_Command, 
                               Term_Frequency_Command,   Inverse_Document_Frequency_Command, 
                               TF_IDF_Command,
                               bm25_idf_command as BM25_IDF_Command)
 
-from Helpers.Search_helps import InvertedIndex
 
 
 
