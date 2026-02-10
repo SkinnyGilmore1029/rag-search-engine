@@ -1,16 +1,25 @@
 from .Search_helps import make_tokens, InvertedIndex
 import math
 
-inverted_index = InvertedIndex({}, {}, {}) # Create an instance of the InvertedIndex class 
+def get_loaded_index() -> InvertedIndex | None:
+    """
+    Create an InvertedIndex instance and try to load it from disk.
+    Returns the loaded InvertedIndex if successful, otherwise None.
+    """
+    inverted_index = InvertedIndex({}, {}, {})  # Create the instance
+    try:
+        inverted_index.load()  # Attempt to load index and docmap from disk
+        return inverted_index
+    except FileNotFoundError:
+        print("Index files not found. Please build the index first using the 'build' command.")
+        return None
 
 def Search_Command(query: str) -> list[dict]:
     """Handles the 'search' command for the CLI using cached title tokens."""
-    try:
-        inverted_index.load()  # Load the index and docmap from disk
-    except FileNotFoundError:
-        print("Index files not found. Please build the index first using the 'build' command.")
-        return []
     
+    inverted_index = get_loaded_index()
+    if inverted_index is None:
+        return []
     Movie_data = inverted_index.docmap.values()  # Get the list of movies from the docmap
     
     # Precompute tokens for each movie title (cache)
@@ -38,21 +47,16 @@ def Search_Command(query: str) -> list[dict]:
 def Term_Frequency_Command(doc_id: int, term: str) -> int:
     """Handles the 'tf' command for the CLI to get term frequency."""
   
-    try:
-        inverted_index.load()  # Load the index and docmap from disk
-    except FileNotFoundError:
-        print("Index files not found. Please build the index first using the 'build' command.")
+    inverted_index = get_loaded_index()
+    if inverted_index is None:
         return 0
-    
     tf = inverted_index.get_tf(doc_id, term)
     return tf
 
 def Inverse_Document_Frequency_Command(term: str) -> float:
     """Handles the 'idf' command for the CLI to get inverse document frequency."""
-    try:
-        inverted_index.load()  # Load the index and docmap from disk
-    except FileNotFoundError:
-        print("Index files not found. Please build the index first using the 'build' command.")
+    inverted_index = get_loaded_index()
+    if inverted_index is None:
         return 0.0
     
     text_tokens = make_tokens(term)
@@ -60,6 +64,7 @@ def Inverse_Document_Frequency_Command(term: str) -> float:
     if text_tokens is None or len(text_tokens) == 0:
         print("No valid tokens found in the term.")
         return 0.0
+    
     total_doc_count = len(inverted_index.docmap)
     term_match_doc_count = len(inverted_index.get_documents(text_tokens[0]))
     return math.log((total_doc_count + 1) / (term_match_doc_count + 1))

@@ -30,6 +30,7 @@ def main() -> None:
     tfidf_parser.add_argument("doc_id", type=int, help="Document ID")
     tfidf_parser.add_argument("term", type=str, help="Term to check TF-IDF score for")
 
+    WhoMadeMe_parser = subparsers.add_parser("WhoMadeMe", help="Learn about the creator of this CLI")
 
     args = parser.parse_args()
     
@@ -61,6 +62,9 @@ def main() -> None:
         case "tfidf" :
             tfidf_score = TF_IDF_Command(args.doc_id, args.term)
             print(f"TF-IDF score of '{args.term}' in document {args.doc_id}: {tfidf_score:.2f}")
+            
+        case "WhoMadeMe":
+            print("This CLI was created by Skinny Gilmore. From Learn Retrieval Augmented Generation on `Boot.dev` ! Make sure to check out the course if you want to learn how to build this yourself.")
             
         case _:
             parser.print_help()
