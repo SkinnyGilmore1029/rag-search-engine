@@ -8,7 +8,10 @@ from .config import (Movie_path,
                      PATH_FOR_INDEX, 
                      PATH_FOR_DOCMAP, 
                      PATH_FOR_FREQUENCIES, 
-                     stop_words)
+                     PATH_FOR_DOCLENGTHS,
+                     stop_words,
+                     BM25_K1,
+                     BM25_B)
 
 
 # Optional cache for movies
@@ -49,6 +52,7 @@ class InvertedIndex:
         self.index = index
         self.docmap = docmap
         self.term_frequencies = term_frequencies
+        self.doc_lengths: dict = {}
         
     def __add_document(self, doc_id:int, text:str) -> None:
         text_tokens = make_tokens(text)
@@ -56,10 +60,15 @@ class InvertedIndex:
         for token in text_tokens:
             if token not in self.index:
                 self.index[token] = set()
+            self.doc_lengths[doc_id] = self.doc_lengths.get(doc_id, 0) + 1
             self.term_frequencies[doc_id][token] += 1
             self.index[token].add(doc_id)
-            
     
+    def __get_avg_doc_length(self) -> float:
+        if not self.doc_lengths:
+            return 0.0
+        return sum(self.doc_lengths.values()) / len(self.doc_lengths)
+         
     def get_documents(self, term:str) -> list[int]:
         key = term.lower()
         if key not in self.index: # <- index is a dict[str, set[int]]
@@ -109,11 +118,58 @@ class InvertedIndex:
         
         return math.log((N - df + 0.5) / (df + 0.5) + 1)
     
+    def get_bm25_tf(self, doc_id:int, term:str, k1:float=BM25_K1, b:float=BM25_B) -> float:
+        raw_term_freq = self.get_tf(doc_id, term)
+        avg_doc_length = self.__get_avg_doc_length()
+        doc_length = self.doc_lengths.get(doc_id, 0)
+        # Length normalization factor
+        length_norm = 1 - b + b * (doc_length / avg_doc_length)
+
+        # Apply to term frequency
+        tf_component = (raw_term_freq * (k1 + 1)) / (raw_term_freq + k1 * length_norm)
+        
+        if raw_term_freq == 0:
+            return 0.0
+        return tf_component
+    
+    def bm25(self, doc_id:int, term:str) -> float:
+        idf = self.get_bm25_idf(term)
+        tf = self.get_bm25_tf(doc_id, term)
+        return idf * tf
+    
+    def bm25_search(self, query: str, limit: int = 5):
+        # Tokenize the query
+        query_tokens = make_tokens(query)
+
+        # Dictionary to store total BM25 scores per document
+        scores: dict[int, float] = {}
+
+        # For each query token
+        for token in query_tokens:
+            # Get documents containing this token
+            doc_ids = self.get_documents(token)
+
+            for doc_id in doc_ids:
+                # Initialize score if not already present
+                if doc_id not in scores:
+                    scores[doc_id] = 0.0
+
+                # Add BM25 score for this token
+                scores[doc_id] += self.bm25(doc_id, token)
+
+        # Sort documents by total score (highest first)
+        ranked_docs = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+
+        # Return top `limit` results
+        return ranked_docs[:limit]
+
+    
     def save(self) -> None:
         # Create parent directory (cache/)
         PATH_FOR_INDEX.parent.mkdir(parents=True, exist_ok=True)
         PATH_FOR_DOCMAP.parent.mkdir(parents=True, exist_ok=True)
         PATH_FOR_FREQUENCIES.parent.mkdir(parents=True, exist_ok=True)
+        PATH_FOR_DOCLENGTHS.parent.mkdir(parents=True, exist_ok=True)
 
         with PATH_FOR_INDEX.open("wb") as f:
             dump(self.index, f)
@@ -124,11 +180,15 @@ class InvertedIndex:
         with PATH_FOR_DOCMAP.open("wb") as f:
             dump(self.docmap, f)
             
+        with PATH_FOR_DOCLENGTHS.open("wb") as f:
+            dump(self.doc_lengths, f)
+            
     def load(self) -> None:
         if (
             PATH_FOR_INDEX.exists() and 
             PATH_FOR_DOCMAP.exists() and 
-            PATH_FOR_FREQUENCIES.exists()
+            PATH_FOR_FREQUENCIES.exists() and 
+            PATH_FOR_DOCLENGTHS
             ):
             
             with PATH_FOR_INDEX.open("rb") as f:
@@ -137,5 +197,8 @@ class InvertedIndex:
                 self.term_frequencies = load(f)
             with PATH_FOR_DOCMAP.open("rb") as f:
                 self.docmap = load(f)
+                
+            with PATH_FOR_DOCLENGTHS.open("rb") as f:
+                self.doc_lengths = load(f)
         else:
             raise FileNotFoundError("Index files and docmap files not found. Please build the index and the docmap first.")

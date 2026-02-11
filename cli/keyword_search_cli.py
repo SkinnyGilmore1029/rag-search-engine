@@ -6,7 +6,10 @@ from Helpers.Search_helps import InvertedIndex
 from Helpers.Commands import (Search_Command, 
                               Term_Frequency_Command,   Inverse_Document_Frequency_Command, 
                               TF_IDF_Command,
-                              bm25_idf_command as BM25_IDF_Command)
+                              bm25_idf_command as BM25_IDF_Command,
+                              bm25_tf_command as BM25_TF_Command,
+                              bm25search)
+from Helpers.config import BM25_K1, BM25_B
 
 
 
@@ -35,6 +38,19 @@ def main() -> None:
 
     bm25_idf_parser = subparsers.add_parser("bm25idf", help="Get BM25 IDF score for a given term")
     bm25_idf_parser.add_argument("term", type=str, help="Term to get BM25 IDF score for")
+
+    bm25_tf_parser = subparsers.add_parser(
+  "bm25tf", help="Get BM25 TF score for a given document ID and term"
+)
+    bm25_tf_parser.add_argument("doc_id", type=int, help="Document ID")
+    bm25_tf_parser.add_argument("term", type=str, help="Term to get BM25 TF score for")
+    bm25_tf_parser.add_argument("k1", type=float, nargs='?', default=BM25_K1, help="Tunable BM25 K1 parameter")
+    bm25_tf_parser.add_argument("b", type=float, nargs='?', default=BM25_B, help="Tunable BM25 B parameter")
+
+    bm25search_parser = subparsers.add_parser("bm25search", help="Search movies using full BM25 scoring")
+    bm25search_parser.add_argument("query", type=str, help="Search query")
+
+
 
 
     WhoMadeMe_parser = subparsers.add_parser("WhoMadeMe", help="Learn about the creator of this CLI")
@@ -74,6 +90,15 @@ def main() -> None:
             bm25_idf_score = BM25_IDF_Command(args.term)
             print(f"BM25 IDF score of '{args.term}': {bm25_idf_score:.2f}")
         
+        case "bm25tf":
+            bm25_tf_score = BM25_TF_Command(args.doc_id, args.term, args.k1)
+            print(f"BM25 TF score of '{args.term}' in document '{args.doc_id}': {bm25_tf_score:.2f}")
+        
+        case "bm25search":
+            results = bm25search(args.query)
+            for i, movie in enumerate(results[:5], start=1):
+                print(f"{i}. ({movie['id']}) {movie['title']} - Score: {movie['score']:.2f}")
+                
         case "WhoMadeMe":
             print("This CLI was created by Skinny Gilmore. From Learn Retrieval Augmented Generation on `Boot.dev` ! Make sure to check out the course if you want to learn how to build this yourself.")
             

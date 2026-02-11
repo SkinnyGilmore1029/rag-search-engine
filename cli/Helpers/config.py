@@ -13,6 +13,8 @@ STOP_WORD_PATH = PROJECT_ROOT / "data" / "stopwords.txt"
 PATH_FOR_INDEX = Path("cache/index.pkl")
 PATH_FOR_DOCMAP = Path("cache/docmap.pkl")
 PATH_FOR_FREQUENCIES = Path("cache/term_frequencies.pkl")
+PATH_FOR_DOCLENGTHS = Path("cache/doc_lengths.pkl")
+
 stop_words = {
     word
     for line in STOP_WORD_PATH.read_text(encoding="utf-8").splitlines()
@@ -21,3 +23,13 @@ stop_words = {
 
 
 BM25_K1 = 1.5
+BM25_B = 0.75
+
+"""
+
+# Length normalization factor
+length_norm = 1 - b + b * (doc_length / avg_doc_length)
+
+# Apply to term frequency
+tf_component = (tf * (k1 + 1)) / (tf + k1 * length_norm)
+"""

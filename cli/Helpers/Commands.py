@@ -1,4 +1,5 @@
 from .Search_helps import make_tokens, InvertedIndex
+from .config import BM25_K1
 import math
 
 def get_loaded_index() -> InvertedIndex | None:
@@ -88,3 +89,55 @@ def bm25_idf_command(term: str) -> float:
         return 0.0
     
     return inverted_index.get_bm25_idf(text_tokens[0])
+
+
+def bm25_tf_command(doc_id: int, term: str, k1: float = BM25_K1) -> float:
+    """Handles the 'bm25-tf' command for the CLI to get BM25 TF score."""
+    inverted_index = get_loaded_index()
+    if inverted_index is None:
+        return 0.0
+    
+    text_tokens = make_tokens(term)
+    
+    if text_tokens is None or len(text_tokens) == 0:
+        print("No valid tokens found in the term.")
+        return 0.0
+    
+    return inverted_index.get_bm25_tf(doc_id, text_tokens[0])
+
+
+def bm25search(query: str, limit: int = 5) -> list[dict]:
+    """Handles the 'bm25search' command for the CLI to perform a BM25 search."""
+    inverted_index = get_loaded_index()
+    if inverted_index is None:
+        return []
+
+    query_tokens = make_tokens(query)
+    if not query_tokens:
+        print("No valid tokens found in the query.")
+        return []
+
+    # Calculate BM25 scores for all documents
+    doc_scores = {}
+    for token in query_tokens:
+        doc_ids = inverted_index.get_documents(token)
+        for doc_id in doc_ids:
+            score = inverted_index.bm25(doc_id, token)
+            doc_scores[doc_id] = doc_scores.get(doc_id, 0) + score
+
+    # Sort documents by score and return top results
+    sorted_docs = sorted(doc_scores.items(), key=lambda item: item[1], reverse=True)
+    top_docs = sorted_docs[:limit]
+
+    results = []
+    for doc_id, score in top_docs:
+        movie = inverted_index.docmap.get(doc_id)
+        if movie:
+            # Create a new dict with the score included
+            results.append({
+                "id": movie["id"],
+                "title": movie["title"],
+                "score": score
+            })
+
+    return results
