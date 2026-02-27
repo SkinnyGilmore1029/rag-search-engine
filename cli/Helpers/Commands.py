@@ -1,5 +1,6 @@
 from .Search_helps import make_tokens, InvertedIndex
 from .config import BM25_K1
+from lib.semantic_search import verify_model
 import math
 
 def get_loaded_index() -> InvertedIndex | None:
